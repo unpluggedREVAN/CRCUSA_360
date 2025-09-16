@@ -7,7 +7,49 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmpresaForm } from './EmpresaForm';
 
-
+// Datos ficticios
+const empresasFicticias = [
+  {
+    id: 1,
+    razonSocial: 'Tech Solutions SA',
+    sector: 'Tecnología',
+    ciudad: 'San José',
+    empleados: 150,
+    estado: 'Activa'
+  },
+  {
+    id: 2,
+    razonSocial: 'Commerce Group LLC',
+    sector: 'Comercio',
+    ciudad: 'San José',
+    empleados: 75,
+    estado: 'Activa'
+  },
+  {
+    id: 3,
+    razonSocial: 'Innovation Labs Inc',
+    sector: 'Investigación y Desarrollo',
+    ciudad: 'Cartago',
+    empleados: 200,
+    estado: 'Activa'
+  },
+  {
+    id: 4,
+    razonSocial: 'Business Consulting Corp',
+    sector: 'Servicios Profesionales',
+    ciudad: 'Alajuela',
+    empleados: 45,
+    estado: 'Activa'
+  },
+  {
+    id: 5,
+    razonSocial: 'Green Energy Solutions',
+    sector: 'Energía Renovable',
+    ciudad: 'Heredia',
+    empleados: 90,
+    estado: 'Activa'
+  },
+];
 
 export function EmpresasContent() {
   const [showForm, setShowForm] = useState(false);
