@@ -15,11 +15,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/contactos/page.js"
-    ],
-    "/empresas/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/empresas/page.js"
     ]
   }
 }
