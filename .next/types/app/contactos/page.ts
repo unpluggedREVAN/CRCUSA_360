@@ -1,4 +1,4 @@
-// File: /home/project/app/contactos/page.tsx
+// File: C:\Users\esteb\Desktop\Uni\25\llSem\Proyecto\CRCUSA_360\app\contactos\page.tsx
 import * as entry from '../../../../app/contactos/page.js'
 import type { ResolvingMetadata } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
