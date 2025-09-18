@@ -41,14 +41,6 @@ const empresasFicticias = [
     empleados: 45,
     estado: 'Activa'
   },
-  {
-    id: 5,
-    razonSocial: 'Green Energy Solutions',
-    sector: 'Energía Renovable',
-    ciudad: 'Heredia',
-    empleados: 90,
-    estado: 'Activa'
-  },
 ];
 
 export function EmpresasContent() {
