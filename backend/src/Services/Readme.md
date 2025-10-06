@@ -1,0 +1,1 @@
+Los scripts que se van a comunicar con la base de datos, son los que van tanto a crar, editar, obtener y eliminar datos de la base de datos.

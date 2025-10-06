@@ -1,0 +1,2 @@
+En esta carpeta va toda la parte a nivel de procesamiento de los datos del Backend.
+Los scripts hacen las validaciones de que vengan los argumentos necesarios, procesan la informacion que viene de la base de datos, pero no se comunican directamente con ella
