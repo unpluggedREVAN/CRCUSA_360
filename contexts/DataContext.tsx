@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { contactsService, companiesService, affiliatesService, sponsorsService } from '@/lib/firestore-service';
 
 export interface Contact {
   id: string;
@@ -42,27 +43,77 @@ export interface Company {
   initials: string;
 }
 
+export interface Affiliate {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  company?: string;
+  companyId?: string;
+  status: string;
+  commissionRate: string;
+  totalSales: string;
+  tier: string;
+  joinDate: string;
+  location: string;
+  performanceScore: string;
+  createdAt: string;
+  updatedAt: string;
+  owner: string;
+  initials: string;
+}
+
+export interface Sponsor {
+  id: string;
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+  sponsorshipType: string;
+  amount: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  benefits: string;
+  location: string;
+  website?: string;
+  createdAt: string;
+  updatedAt: string;
+  owner: string;
+  initials: string;
+}
+
 interface DataContextType {
   contacts: Contact[];
   companies: Company[];
-  addContact: (contact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt' | 'initials'>) => void;
-  updateContact: (id: string, contact: Partial<Contact>) => void;
-  deleteContact: (id: string) => void;
-  addCompany: (company: Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'initials'>) => void;
-  updateCompany: (id: string, company: Partial<Company>) => void;
-  deleteCompany: (id: string) => void;
-  linkContactToCompany: (contactId: string, companyId: string) => void;
-  unlinkContactFromCompany: (contactId: string) => void;
+  affiliates: Affiliate[];
+  sponsors: Sponsor[];
+  loading: boolean;
+  addContact: (contact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt' | 'initials'>) => Promise<void>;
+  updateContact: (id: string, contact: Partial<Contact>) => Promise<void>;
+  deleteContact: (id: string) => Promise<void>;
+  addCompany: (company: Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'initials'>) => Promise<void>;
+  updateCompany: (id: string, company: Partial<Company>) => Promise<void>;
+  deleteCompany: (id: string) => Promise<void>;
+  linkContactToCompany: (contactId: string, companyId: string) => Promise<void>;
+  unlinkContactFromCompany: (contactId: string) => Promise<void>;
   getContactsByCompany: (companyId: string) => Contact[];
-  importContactsFromCSV: (csvData: string) => { success: number; errors: string[] };
-  importCompaniesFromCSV: (csvData: string) => { success: number; errors: string[] };
+  importContactsFromCSV: (csvData: string) => Promise<{ success: number; errors: string[] }>;
+  importCompaniesFromCSV: (csvData: string) => Promise<{ success: number; errors: string[] }>;
   exportContactsToCSV: () => string;
   exportCompaniesToCSV: () => string;
+  addAffiliate: (affiliate: Omit<Affiliate, 'id' | 'createdAt' | 'updatedAt' | 'initials'>) => Promise<void>;
+  updateAffiliate: (id: string, affiliate: Partial<Affiliate>) => Promise<void>;
+  deleteAffiliate: (id: string) => Promise<void>;
+  convertContactToAffiliate: (contactId: string, options?: { status?: string; commissionRate?: string; tier?: string }) => Promise<void>;
+  convertContactToSponsor: (contactId: string, options?: { sponsorshipType?: string; amount?: string; status?: string; endDate?: string; benefits?: string }) => Promise<void>;
+  addSponsor: (sponsor: Omit<Sponsor, 'id' | 'createdAt' | 'updatedAt' | 'initials'>) => Promise<void>;
+  updateSponsor: (id: string, sponsor: Partial<Sponsor>) => Promise<void>;
+  deleteSponsor: (id: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Mock data
 const initialContacts: Contact[] = [
   {
     id: '1',
@@ -300,39 +351,80 @@ const initialCompanies: Company[] = [
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
-  // Load data from localStorage on mount
   useEffect(() => {
-    const savedContacts = localStorage.getItem('crcusa_contacts');
-    const savedCompanies = localStorage.getItem('crcusa_companies');
-
-    if (savedContacts) {
-      setContacts(JSON.parse(savedContacts));
-    } else {
-      setContacts(initialContacts);
-      localStorage.setItem('crcusa_contacts', JSON.stringify(initialContacts));
-    }
-
-    if (savedCompanies) {
-      setCompanies(JSON.parse(savedCompanies));
-    } else {
-      setCompanies(initialCompanies);
-      localStorage.setItem('crcusa_companies', JSON.stringify(initialCompanies));
-    }
+    loadData();
   }, []);
 
-  // Save to localStorage whenever data changes
-  useEffect(() => {
-    if (contacts.length > 0) {
-      localStorage.setItem('crcusa_contacts', JSON.stringify(contacts));
-    }
-  }, [contacts]);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [contactsData, companiesData, affiliatesData, sponsorsData] = await Promise.all([
+        contactsService.getAll(),
+        companiesService.getAll(),
+        affiliatesService.getAll(),
+        sponsorsService.getAll()
+      ]);
 
-  useEffect(() => {
-    if (companies.length > 0) {
-      localStorage.setItem('crcusa_companies', JSON.stringify(companies));
+      if (contactsData.length === 0 && companiesData.length === 0 && !initialized) {
+        await initializeData();
+        setInitialized(true);
+      } else {
+        setContacts(contactsData.map(formatContact));
+        setCompanies(companiesData.map(formatCompany));
+        setAffiliates(affiliatesData.map(formatAffiliate));
+        setSponsors(sponsorsData.map(formatSponsor));
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [companies]);
+  };
+
+  const initializeData = async () => {
+    try {
+      const contactPromises = initialContacts.map(contact =>
+        contactsService.create(contact)
+      );
+      const companyPromises = initialCompanies.map(company =>
+        companiesService.create(company)
+      );
+
+      await Promise.all([...contactPromises, ...companyPromises]);
+      await loadData();
+    } catch (error) {
+      console.error('Error initializing data:', error);
+    }
+  };
+
+  const formatContact = (contact: any): Contact => ({
+    ...contact,
+    createdAt: contact.createdAt instanceof Date ? contact.createdAt.toLocaleDateString('es-ES') : contact.createdAt,
+    updatedAt: contact.updatedAt instanceof Date ? contact.updatedAt.toLocaleDateString('es-ES') : contact.updatedAt
+  });
+
+  const formatCompany = (company: any): Company => ({
+    ...company,
+    createdAt: company.createdAt instanceof Date ? company.createdAt.toLocaleDateString('es-ES') : company.createdAt,
+    updatedAt: company.updatedAt instanceof Date ? company.updatedAt.toLocaleDateString('es-ES') : company.updatedAt
+  });
+
+  const formatAffiliate = (affiliate: any): Affiliate => ({
+    ...affiliate,
+    createdAt: affiliate.createdAt instanceof Date ? affiliate.createdAt.toLocaleDateString('es-ES') : affiliate.createdAt,
+    updatedAt: affiliate.updatedAt instanceof Date ? affiliate.updatedAt.toLocaleDateString('es-ES') : affiliate.updatedAt
+  });
+
+  const formatSponsor = (sponsor: any): Sponsor => ({
+    ...sponsor,
+    createdAt: sponsor.createdAt instanceof Date ? sponsor.createdAt.toLocaleDateString('es-ES') : sponsor.createdAt,
+    updatedAt: sponsor.updatedAt instanceof Date ? sponsor.updatedAt.toLocaleDateString('es-ES') : sponsor.updatedAt
+  });
 
   const generateInitials = (name: string): string => {
     return name
@@ -342,98 +434,134 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .substring(0, 2);
   };
 
-  const generateId = (): string => {
-    return Date.now().toString() + Math.random().toString(36).substr(2, 9);
-  };
-
-  const addContact = (contactData: Omit<Contact, 'id' | 'createdAt' | 'updatedAt' | 'initials'>) => {
-    const now = new Date().toLocaleDateString('es-ES');
-    const newContact: Contact = {
-      ...contactData,
-      id: generateId(),
-      createdAt: now,
-      updatedAt: now,
-      initials: generateInitials(contactData.name)
-    };
-    setContacts(prev => [...prev, newContact]);
-  };
-
-  const updateContact = (id: string, contactData: Partial<Contact>) => {
-    setContacts(prev => prev.map(contact => 
-      contact.id === id 
-        ? { 
-            ...contact, 
-            ...contactData, 
-            updatedAt: new Date().toLocaleDateString('es-ES'),
-            initials: contactData.name ? generateInitials(contactData.name) : contact.initials
-          }
-        : contact
-    ));
-  };
-
-  const deleteContact = (id: string) => {
-    setContacts(prev => prev.filter(contact => contact.id !== id));
-  };
-
-  const addCompany = (companyData: Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'initials'>) => {
-    const now = new Date().toLocaleDateString('es-ES');
-    const newCompany: Company = {
-      ...companyData,
-      id: generateId(),
-      createdAt: now,
-      updatedAt: now,
-      initials: generateInitials(companyData.name)
-    };
-    setCompanies(prev => [...prev, newCompany]);
-  };
-
-  const updateCompany = (id: string, companyData: Partial<Company>) => {
-    setCompanies(prev => prev.map(company => 
-      company.id === id 
-        ? { 
-            ...company, 
-            ...companyData, 
-            updatedAt: new Date().toLocaleDateString('es-ES'),
-            initials: companyData.name ? generateInitials(companyData.name) : company.initials
-          }
-        : company
-    ));
-  };
-
-  const deleteCompany = (id: string) => {
-    // Unlink all contacts from this company
-    setContacts(prev => prev.map(contact => 
-      contact.companyId === id 
-        ? { ...contact, companyId: undefined, company: undefined }
-        : contact
-    ));
-    setCompanies(prev => prev.filter(company => company.id !== id));
-  };
-
-  const linkContactToCompany = (contactId: string, companyId: string) => {
-    const company = companies.find(c => c.id === companyId);
-    if (company) {
-      setContacts(prev => prev.map(contact => 
-        contact.id === contactId 
-          ? { ...contact, companyId, company: company.name, updatedAt: new Date().toLocaleDateString('es-ES') }
-          : contact
-      ));
+  const addContact = async (contactData: Omit<Contact, 'id' | 'createdAt' | 'updatedAt' | 'initials'>) => {
+    try {
+      const now = new Date().toLocaleDateString('es-ES');
+      const newContact = {
+        ...contactData,
+        createdAt: now,
+        updatedAt: now,
+        initials: generateInitials(contactData.name)
+      };
+      await contactsService.create(newContact as any);
+      await loadData();
+    } catch (error) {
+      console.error('Error adding contact:', error);
+      throw error;
     }
   };
 
-  const unlinkContactFromCompany = (contactId: string) => {
-    setContacts(prev => prev.map(contact => 
-      contact.id === contactId 
-        ? { ...contact, companyId: undefined, company: undefined, updatedAt: new Date().toLocaleDateString('es-ES') }
-        : contact
-    ));
+  const updateContact = async (id: string, contactData: Partial<Contact>) => {
+    try {
+      const updates: any = {
+        ...contactData,
+        updatedAt: new Date().toLocaleDateString('es-ES')
+      };
+      if (contactData.name) {
+        updates.initials = generateInitials(contactData.name);
+      }
+      await contactsService.update(id, updates);
+      await loadData();
+    } catch (error) {
+      console.error('Error updating contact:', error);
+      throw error;
+    }
+  };
+
+  const deleteContact = async (id: string) => {
+    try {
+      await contactsService.delete(id);
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting contact:', error);
+      throw error;
+    }
+  };
+
+  const addCompany = async (companyData: Omit<Company, 'id' | 'createdAt' | 'updatedAt' | 'initials'>) => {
+    try {
+      const now = new Date().toLocaleDateString('es-ES');
+      const newCompany = {
+        ...companyData,
+        createdAt: now,
+        updatedAt: now,
+        initials: generateInitials(companyData.name)
+      };
+      await companiesService.create(newCompany as any);
+      await loadData();
+    } catch (error) {
+      console.error('Error adding company:', error);
+      throw error;
+    }
+  };
+
+  const updateCompany = async (id: string, companyData: Partial<Company>) => {
+    try {
+      const updates: any = {
+        ...companyData,
+        updatedAt: new Date().toLocaleDateString('es-ES')
+      };
+      if (companyData.name) {
+        updates.initials = generateInitials(companyData.name);
+      }
+      await companiesService.update(id, updates);
+      await loadData();
+    } catch (error) {
+      console.error('Error updating company:', error);
+      throw error;
+    }
+  };
+
+  const deleteCompany = async (id: string) => {
+    try {
+      const linkedContacts = contacts.filter(c => c.companyId === id);
+      await Promise.all(
+        linkedContacts.map(contact =>
+          contactsService.update(contact.id, { companyId: undefined, company: undefined })
+        )
+      );
+      await companiesService.delete(id);
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting company:', error);
+      throw error;
+    }
+  };
+
+  const linkContactToCompany = async (contactId: string, companyId: string) => {
+    try {
+      const company = companies.find(c => c.id === companyId);
+      if (company) {
+        await contactsService.update(contactId, {
+          companyId,
+          company: company.name
+        });
+        await loadData();
+      }
+    } catch (error) {
+      console.error('Error linking contact to company:', error);
+      throw error;
+    }
+  };
+
+  const unlinkContactFromCompany = async (contactId: string) => {
+    try {
+      await contactsService.update(contactId, {
+        companyId: undefined,
+        company: undefined
+      });
+      await loadData();
+    } catch (error) {
+      console.error('Error unlinking contact from company:', error);
+      throw error;
+    }
   };
 
   const getContactsByCompany = (companyId: string): Contact[] => {
     return contacts.filter(contact => contact.companyId === companyId);
   };
 
-  const importContactsFromCSV = (csvData: string): { success: number; errors: string[] } => {
+  const importContactsFromCSV = async (csvData: string): Promise<{ success: number; errors: string[] }> => {
     const lines = csvData.trim().split('\n');
     const headers = lines[0].split(',').map(h => h.trim());
     const errors: string[] = [];
@@ -453,7 +581,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           continue;
         }
 
-        addContact({
+        await addContact({
           name: contactData.name,
           email: contactData.email,
           phone: contactData.phone || '',
@@ -479,7 +607,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return { success, errors };
   };
 
-  const importCompaniesFromCSV = (csvData: string): { success: number; errors: string[] } => {
+  const importCompaniesFromCSV = async (csvData: string): Promise<{ success: number; errors: string[] }> => {
     const lines = csvData.trim().split('\n');
     const headers = lines[0].split(',').map(h => h.trim());
     const errors: string[] = [];
@@ -499,7 +627,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           continue;
         }
 
-        addCompany({
+        await addCompany({
           name: companyData.name,
           tradeName: companyData.tradeName || companyData.name,
           email: companyData.email,
@@ -526,7 +654,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const headers = ['name', 'email', 'phone', 'company', 'role', 'status', 'score', 'interest', 'probability', 'origin', 'estimatedValue', 'location', 'isPotential', 'createdAt', 'updatedAt', 'owner'];
     const csvContent = [
       headers.join(','),
-      ...contacts.map(contact => 
+      ...contacts.map(contact =>
         headers.map(header => {
           const value = contact[header as keyof Contact];
           return typeof value === 'string' ? `"${value}"` : value;
@@ -541,7 +669,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const headers = ['name', 'tradeName', 'email', 'phone', 'website', 'sector', 'size', 'location', 'address', 'description', 'createdAt', 'updatedAt', 'owner'];
     const csvContent = [
       headers.join(','),
-      ...companies.map(company => 
+      ...companies.map(company =>
         headers.map(header => {
           const value = company[header as keyof Company];
           return typeof value === 'string' ? `"${value}"` : value;
@@ -552,9 +680,166 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return csvContent;
   };
 
+  const addAffiliate = async (affiliateData: Omit<Affiliate, 'id' | 'createdAt' | 'updatedAt' | 'initials'>) => {
+    try {
+      const now = new Date().toLocaleDateString('es-ES');
+      const newAffiliate = {
+        ...affiliateData,
+        createdAt: now,
+        updatedAt: now,
+        initials: generateInitials(affiliateData.name)
+      };
+      await affiliatesService.create(newAffiliate as any);
+      await loadData();
+    } catch (error) {
+      console.error('Error adding affiliate:', error);
+      throw error;
+    }
+  };
+
+  const updateAffiliate = async (id: string, affiliateData: Partial<Affiliate>) => {
+    try {
+      const updates: any = {
+        ...affiliateData,
+        updatedAt: new Date().toLocaleDateString('es-ES')
+      };
+      if (affiliateData.name) {
+        updates.initials = generateInitials(affiliateData.name);
+      }
+      await affiliatesService.update(id, updates);
+      await loadData();
+    } catch (error) {
+      console.error('Error updating affiliate:', error);
+      throw error;
+    }
+  };
+
+  const deleteAffiliate = async (id: string) => {
+    try {
+      await affiliatesService.delete(id);
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting affiliate:', error);
+      throw error;
+    }
+  };
+
+  const convertContactToAffiliate = async (contactId: string, options?: { status?: string; commissionRate?: string; tier?: string }) => {
+    try {
+      const contact = contacts.find(c => c.id === contactId);
+      if (!contact) return;
+
+      const now = new Date().toLocaleDateString('es-ES');
+      const newAffiliate = {
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone,
+        company: contact.company,
+        companyId: contact.companyId,
+        status: options?.status || 'Activo',
+        commissionRate: options?.commissionRate || '10%',
+        totalSales: '$0',
+        tier: options?.tier || 'Bronce',
+        joinDate: now,
+        location: contact.location,
+        performanceScore: '0',
+        createdAt: now,
+        updatedAt: now,
+        owner: contact.owner,
+        initials: contact.initials
+      };
+
+      await affiliatesService.create(newAffiliate as any);
+      await loadData();
+    } catch (error) {
+      console.error('Error converting contact to affiliate:', error);
+      throw error;
+    }
+  };
+
+  const convertContactToSponsor = async (contactId: string, options?: { sponsorshipType?: string; amount?: string; status?: string; endDate?: string; benefits?: string }) => {
+    try {
+      const contact = contacts.find(c => c.id === contactId);
+      if (!contact) return;
+
+      const now = new Date().toLocaleDateString('es-ES');
+      const newSponsor = {
+        name: contact.name,
+        company: contact.company || 'Sin empresa',
+        email: contact.email,
+        phone: contact.phone,
+        sponsorshipType: options?.sponsorshipType || 'Oro',
+        amount: options?.amount || '$0',
+        status: options?.status || 'Activo',
+        startDate: now,
+        endDate: options?.endDate || '',
+        benefits: options?.benefits || '',
+        location: contact.location,
+        website: '',
+        createdAt: now,
+        updatedAt: now,
+        owner: contact.owner,
+        initials: contact.initials
+      };
+
+      await sponsorsService.create(newSponsor as any);
+      await loadData();
+    } catch (error) {
+      console.error('Error converting contact to sponsor:', error);
+      throw error;
+    }
+  };
+
+  const addSponsor = async (sponsorData: Omit<Sponsor, 'id' | 'createdAt' | 'updatedAt' | 'initials'>) => {
+    try {
+      const now = new Date().toLocaleDateString('es-ES');
+      const newSponsor = {
+        ...sponsorData,
+        createdAt: now,
+        updatedAt: now,
+        initials: generateInitials(sponsorData.name)
+      };
+      await sponsorsService.create(newSponsor as any);
+      await loadData();
+    } catch (error) {
+      console.error('Error adding sponsor:', error);
+      throw error;
+    }
+  };
+
+  const updateSponsor = async (id: string, sponsorData: Partial<Sponsor>) => {
+    try {
+      const updates: any = {
+        ...sponsorData,
+        updatedAt: new Date().toLocaleDateString('es-ES')
+      };
+      if (sponsorData.name) {
+        updates.initials = generateInitials(sponsorData.name);
+      }
+      await sponsorsService.update(id, updates);
+      await loadData();
+    } catch (error) {
+      console.error('Error updating sponsor:', error);
+      throw error;
+    }
+  };
+
+  const deleteSponsor = async (id: string) => {
+    try {
+      await sponsorsService.delete(id);
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting sponsor:', error);
+      throw error;
+    }
+  };
+
   const value = {
     contacts,
     companies,
+    affiliates,
+    sponsors,
+    loading,
     addContact,
     updateContact,
     deleteContact,
@@ -567,7 +852,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     importContactsFromCSV,
     importCompaniesFromCSV,
     exportContactsToCSV,
-    exportCompaniesToCSV
+    exportCompaniesToCSV,
+    addAffiliate,
+    updateAffiliate,
+    deleteAffiliate,
+    convertContactToAffiliate,
+    convertContactToSponsor,
+    addSponsor,
+    updateSponsor,
+    deleteSponsor
   };
 
   return (
