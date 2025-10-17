@@ -59,9 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(() => resolve(), 1000));
+
+    await new Promise<void>(resolve => setTimeout(() => resolve(), 1000));
     
     const foundUser = mockUsers.find(u => u.email === email && u.password === password);
     
