@@ -60,19 +60,21 @@ export function EditContactDialog({ open, onOpenChange, contact }: EditContactDi
     if (!contact || !formData.name || !formData.email) return;
 
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(() => resolve(), 1000));
 
-    const company = companies.find(c => c.id === formData.companyId);
-    
-    updateContact(contact.id, {
-      ...formData,
-      company: company?.name || undefined
-    });
+    try {
+      const company = companies.find(c => c.id === formData.companyId);
 
-    setIsLoading(false);
-    onOpenChange(false);
+      await updateContact(contact.id, {
+        ...formData,
+        company: company?.name || undefined
+      });
+
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error updating contact:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string | boolean) => {

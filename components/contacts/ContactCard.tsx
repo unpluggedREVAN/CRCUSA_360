@@ -9,7 +9,7 @@ interface Contact {
   status: string;
   statusColor: string;
   phone: string;
-  company: string;
+  company?: string;
   score: string;
   estimatedValue: string;
   probability: string;

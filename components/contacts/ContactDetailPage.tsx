@@ -9,9 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { EditContactDialog } from './EditContactDialog';
 import { useData } from '@/contexts/DataContext';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { 
+import {
   ArrowLeft,
-  AlertTriangle, 
+  AlertTriangle,
   Edit,
   Trash2,
   Phone,
@@ -19,7 +19,9 @@ import {
   Building2,
   MapPin,
   Star,
-  User
+  User,
+  UserPlus,
+  Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -28,10 +30,12 @@ interface ContactDetailPageProps {
 }
 
 export function ContactDetailPage({ contactId }: ContactDetailPageProps) {
-  const { contacts, updateContact, deleteContact } = useData();
+  const { contacts, updateContact, deleteContact, convertContactToAffiliate, convertContactToSponsor } = useData();
   const router = useRouter();
   const [showEditDialog, setShowEditDialog] = useState(false);
-  
+  const [isConvertingAffiliate, setIsConvertingAffiliate] = useState(false);
+  const [isConvertingSponsor, setIsConvertingSponsor] = useState(false);
+
   const contact = contacts.find(c => c.id === contactId);
 
   if (!contact) {
@@ -60,6 +64,34 @@ export function ContactDetailPage({ contactId }: ContactDetailPageProps) {
     router.push('/contacts');
   };
 
+  const handleConvertToAffiliate = async () => {
+    setIsConvertingAffiliate(true);
+    try {
+      await convertContactToAffiliate(contact.id);
+      alert('Contacto convertido a afiliado exitosamente');
+      router.push('/affiliates');
+    } catch (error) {
+      console.error('Error converting to affiliate:', error);
+      alert('Error al convertir a afiliado');
+    } finally {
+      setIsConvertingAffiliate(false);
+    }
+  };
+
+  const handleConvertToSponsor = async () => {
+    setIsConvertingSponsor(true);
+    try {
+      await convertContactToSponsor(contact.id);
+      alert('Contacto convertido a patrocinador exitosamente');
+      router.push('/sponsors');
+    } catch (error) {
+      console.error('Error converting to sponsor:', error);
+      alert('Error al convertir a patrocinador');
+    } finally {
+      setIsConvertingSponsor(false);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
@@ -76,16 +108,54 @@ export function ContactDetailPage({ contactId }: ContactDetailPageProps) {
               </Link>
             </div>
             <div className="flex items-center space-x-3">
-              <Button 
-                variant={contact.isPotential ? "destructive" : "default"} 
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleConvertToAffiliate}
+                disabled={isConvertingAffiliate}
+                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+              >
+                {isConvertingAffiliate ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Convirtiendo...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    A Afiliado
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleConvertToSponsor}
+                disabled={isConvertingSponsor}
+                className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+              >
+                {isConvertingSponsor ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Convirtiendo...
+                  </>
+                ) : (
+                  <>
+                    <Star className="h-4 w-4 mr-2" />
+                    A Patrocinador
+                  </>
+                )}
+              </Button>
+              <Button
+                variant={contact.isPotential ? "destructive" : "default"}
                 size="sm"
                 onClick={handleTogglePotential}
               >
                 <AlertTriangle className="h-4 w-4 mr-2" />
                 {contact.isPotential ? 'No Potencial' : 'Marcar Potencial'}
               </Button>
-              <Button 
-                className="bg-blue-600 hover:bg-blue-700" 
+              <Button
+                className="bg-blue-600 hover:bg-blue-700"
                 size="sm"
                 onClick={() => setShowEditDialog(true)}
               >

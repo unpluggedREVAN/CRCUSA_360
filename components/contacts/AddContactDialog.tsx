@@ -41,38 +41,40 @@ export function AddContactDialog({ open, onOpenChange }: AddContactDialogProps) 
     if (!formData.name || !formData.email) return;
 
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(() => resolve(), 1000));
 
-    const company = companies.find(c => c.id === formData.companyId);
-    
-    addContact({
-      ...formData,
-      company: company?.name || undefined,
-      owner: 'admin@crcusa.com'
-    });
+    try {
+      const company = companies.find(c => c.id === formData.companyId);
 
-    // Reset form
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      companyId: '',
-      role: '',
-      status: 'Primer contacto',
-      score: '3/5',
-      interest: 'Medio',
-      probability: '50%',
-      origin: 'Web',
-      estimatedValue: '$0',
-      location: '',
-      isPotential: true,
-      notes: ''
-    });
+      await addContact({
+        ...formData,
+        company: company?.name || undefined,
+        owner: 'admin@crcusa.com'
+      });
 
-    setIsLoading(false);
-    onOpenChange(false);
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        companyId: '',
+        role: '',
+        status: 'Primer contacto',
+        score: '3/5',
+        interest: 'Medio',
+        probability: '50%',
+        origin: 'Web',
+        estimatedValue: '$0',
+        location: '',
+        isPotential: true,
+        notes: ''
+      });
+
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error adding contact:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string | boolean) => {
