@@ -26,22 +26,24 @@ export function ImportCSVDialog({ open, onOpenChange, type }: ImportCSVDialogPro
     setIsLoading(true);
     setResult(null);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(() => resolve(), 1500));
+    try {
+      const importResult = type === 'contacts'
+        ? await importContactsFromCSV(csvData)
+        : await importCompaniesFromCSV(csvData);
 
-    const importResult = type === 'contacts' 
-      ? importContactsFromCSV(csvData)
-      : importCompaniesFromCSV(csvData);
+      setResult(importResult);
 
-    setResult(importResult);
-    setIsLoading(false);
-
-    if (importResult.errors.length === 0) {
-      setTimeout(() => {
-        setCsvData('');
-        setResult(null);
-        onOpenChange(false);
-      }, 2000);
+      if (importResult.errors.length === 0) {
+        setTimeout(() => {
+          setCsvData('');
+          setResult(null);
+          onOpenChange(false);
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error importing CSV:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
