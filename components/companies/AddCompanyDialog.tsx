@@ -36,32 +36,34 @@ export function AddCompanyDialog({ open, onOpenChange }: AddCompanyDialogProps) 
     if (!formData.name || !formData.email) return;
 
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(() => resolve(), 1000));
 
-    addCompany({
-      ...formData,
-      tradeName: formData.tradeName || formData.name,
-      owner: 'admin@crcusa.com'
-    });
+    try {
+      await addCompany({
+        ...formData,
+        tradeName: formData.tradeName || formData.name,
+        owner: 'admin@crcusa.com'
+      });
 
-    // Reset form
-    setFormData({
-      name: '',
-      tradeName: '',
-      email: '',
-      phone: '',
-      website: '',
-      sector: 'Restaurante',
-      size: 'Pequeña (1-10)',
-      location: '',
-      address: '',
-      description: ''
-    });
+      // Reset form
+      setFormData({
+        name: '',
+        tradeName: '',
+        email: '',
+        phone: '',
+        website: '',
+        sector: 'Restaurante',
+        size: 'Pequeña (1-10)',
+        location: '',
+        address: '',
+        description: ''
+      });
 
-    setIsLoading(false);
-    onOpenChange(false);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error adding company:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {

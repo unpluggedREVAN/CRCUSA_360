@@ -54,17 +54,19 @@ export function EditCompanyDialog({ open, onOpenChange, company }: EditCompanyDi
     if (!company || !formData.name || !formData.email) return;
 
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(() => resolve(), 1000));
 
-    updateCompany(company.id, {
-      ...formData,
-      tradeName: formData.tradeName || formData.name
-    });
+    try {
+      await updateCompany(company.id, {
+        ...formData,
+        tradeName: formData.tradeName || formData.name
+      });
 
-    setIsLoading(false);
-    onOpenChange(false);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error updating company:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {

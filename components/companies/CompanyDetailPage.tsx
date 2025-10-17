@@ -135,17 +135,19 @@ export function CompanyDetailPage({ companyId }: CompanyDetailPageProps) {
                     <Phone className="h-5 w-5 text-gray-400" />
                     <span>{company.phone}</span>
                   </div>
-                  <div className="flex items-center space-x-3 md:col-span-2">
-                    <Globe className="h-5 w-5 text-gray-400" />
-                    <Link 
-                      href={company.website}
-                      target="_blank"
-                      className="text-blue-600 hover:text-blue-800 flex items-center"
-                    >
-                      {company.website}
-                      <ExternalLink className="h-4 w-4 ml-1" />
-                    </Link>
-                  </div>
+                  {company.website && (
+                    <div className="flex items-center space-x-3 md:col-span-2">
+                      <Globe className="h-5 w-5 text-gray-400" />
+                      <Link
+                        href={company.website}
+                        target="_blank"
+                        className="text-blue-600 hover:text-blue-800 flex items-center"
+                      >
+                        {company.website}
+                        <ExternalLink className="h-4 w-4 ml-1" />
+                      </Link>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-6">
