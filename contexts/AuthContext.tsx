@@ -1,5 +1,6 @@
 'use client';
 
+import { onAuthStateChanged } from 'firebase/auth';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 interface User {
@@ -85,6 +86,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     localStorage.removeItem('mockUser');
   };
+
+  // Definicion de las nuevas funciones con JWT y dinamicas con Firebase
+ /*
+  useEffect(() => {
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        setUser(firebaseUser);
+        if (firebaseUser) {
+          const token = await firebaseUser.getIdToken();
+          setToken(token);
+        } else {
+          setToken(null);
+        }
+        setIsLoading(false)
+      });
+      return () => unsubscribe()
+    })
+*/
+
+
 
   const value = {
     user,
