@@ -2,6 +2,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
+
 interface User {
   id: string;
   name: string;
@@ -62,8 +65,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     await new Promise<void>(resolve => setTimeout(() => resolve(), 1000));
     
-    const foundUser = mockUsers.find(u => u.email === email && u.password === password);
-    
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const fbUser = userCredential.user;
+
+    const foundUser = {
+      id: fbUser.uid,
+      name: fbUser.displayName || "",
+      email: fbUser.email || "",
+      role: "user"
+    }
+
     if (foundUser) {
       const userData = {
         id: foundUser.id,
