@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { contactsService, companiesService, affiliatesService, sponsorsService, campaignsService, Campaign, CampaignRecipient, RecipientStatus } from '@/lib/firestore-service';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 export interface Contact {
   id: string;
@@ -377,14 +379,36 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  const [userAuthenticated, setUserAuthenticated] = useState(false);
 
   useEffect(() => {
-    loadData();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserAuthenticated(true);
+        loadData();
+      } else {
+        setUserAuthenticated(false);
+        setContacts([]);
+        setCompanies([]);
+        setAffiliates([]);
+        setSponsors([]);
+        setCampaigns([]);
+        setLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const loadData = async () => {
+    if (!userAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
+
       const [contactsData, companiesData, affiliatesData, sponsorsData, campaignsData] = await Promise.all([
         contactsService.getAll(),
         companiesService.getAll(),
@@ -472,7 +496,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       const now = new Date().toLocaleDateString('es-ES');
       const newContact = {
-        ...contactData,
+        name: contactData.name,
+        email: contactData.email,
+        phone: contactData.phone,
+        company: contactData.company || '',
+        companyId: contactData.companyId || '',
+        role: contactData.role || '',
+        status: contactData.status,
+        score: contactData.score,
+        interest: contactData.interest,
+        probability: contactData.probability,
+        origin: contactData.origin,
+        estimatedValue: contactData.estimatedValue,
+        location: contactData.location,
+        isPotential: contactData.isPotential,
+        owner: contactData.owner,
         createdAt: now,
         updatedAt: now,
         initials: generateInitials(contactData.name)
@@ -502,9 +540,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       const updates: any = {
-        ...contactData,
         updatedAt: new Date().toLocaleDateString('es-ES')
       };
+
+      Object.keys(contactData).forEach(key => {
+        const value = (contactData as any)[key];
+        if (value !== undefined) {
+          updates[key] = value;
+        }
+      });
+
       if (contactData.name) {
         updates.initials = generateInitials(contactData.name);
       }
@@ -540,7 +585,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       const now = new Date().toLocaleDateString('es-ES');
       const newCompany = {
-        ...companyData,
+        name: companyData.name,
+        tradeName: companyData.tradeName,
+        email: companyData.email,
+        phone: companyData.phone,
+        website: companyData.website || '',
+        sector: companyData.sector,
+        size: companyData.size,
+        location: companyData.location,
+        address: companyData.address,
+        description: companyData.description,
+        latitude: companyData.latitude || null,
+        longitude: companyData.longitude || null,
+        owner: companyData.owner,
         createdAt: now,
         updatedAt: now,
         initials: generateInitials(companyData.name)

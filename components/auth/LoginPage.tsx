@@ -25,16 +25,10 @@ export function LoginPage() {
       return;
     }
 
-    const success = await login(email, password);
-    if (!success) {
-      setError('Credenciales inválidas. Por favor, verifica tu email y contraseña.');
+    const result = await login(email, password);
+    if (!result.success) {
+      setError(result.error || 'Error al iniciar sesión. Por favor, intenta de nuevo.');
     }
-  };
-
-  const fillCredentials = (userEmail: string, userPassword: string) => {
-    setEmail(userEmail);
-    setPassword(userPassword);
-    setError('');
   };
 
   return (
@@ -65,7 +59,9 @@ export function LoginPage() {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
                   placeholder="tu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -78,7 +74,9 @@ export function LoginPage() {
                 <div className="relative">
                   <Input
                     id="password"
+                    name="password"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     placeholder="Tu contraseña"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -125,50 +123,6 @@ export function LoginPage() {
           </CardContent>
         </Card>
 
-        {/* Demo Credentials */}
-        <Card className="bg-blue-50 border-blue-200">
-          <CardHeader>
-            <CardTitle className="text-sm text-blue-900">Credenciales de Prueba</CardTitle>
-            <CardDescription className="text-blue-700">
-              Haz clic en cualquier usuario para llenar automáticamente los campos
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-left h-auto p-3 hover:bg-blue-100"
-              onClick={() => fillCredentials('admin@crcusa.com', 'admin123')}
-              disabled={isLoading}
-            >
-              <div>
-                <div className="font-medium text-blue-900">Administrador</div>
-                <div className="text-sm text-blue-700">admin@crcusa.com / admin123</div>
-              </div>
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-left h-auto p-3 hover:bg-blue-100"
-              onClick={() => fillCredentials('manager@crcusa.com', 'manager123')}
-              disabled={isLoading}
-            >
-              <div>
-                <div className="font-medium text-blue-900">Manager</div>
-                <div className="text-sm text-blue-700">manager@crcusa.com / manager123</div>
-              </div>
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-left h-auto p-3 hover:bg-blue-100"
-              onClick={() => fillCredentials('user@crcusa.com', 'user123')}
-              disabled={isLoading}
-            >
-              <div>
-                <div className="font-medium text-blue-900">Usuario</div>
-                <div className="text-sm text-blue-700">user@crcusa.com / user123</div>
-              </div>
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
