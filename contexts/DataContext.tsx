@@ -382,10 +382,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [userAuthenticated, setUserAuthenticated] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUserAuthenticated(true);
-        loadData();
+        await loadData(true);
       } else {
         setUserAuthenticated(false);
         setContacts([]);
@@ -400,8 +400,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const loadData = async () => {
-    if (!userAuthenticated) {
+  const loadData = async (forceLoad = false) => {
+    if (!forceLoad && !userAuthenticated) {
       setLoading(false);
       return;
     }
@@ -436,12 +436,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const initializeData = async () => {
     try {
-      const contactPromises = initialContacts.map(contact =>
-        contactsService.create(contact)
-      );
-      const companyPromises = initialCompanies.map(company =>
-        companiesService.create(company)
-      );
+      const contactPromises = initialContacts.map(contact => {
+        const { id, ...contactData } = contact;
+        return contactsService.createWithId(id, contactData as any);
+      });
+      const companyPromises = initialCompanies.map(company => {
+        const { id, ...companyData } = company;
+        return companiesService.createWithId(id, companyData as any);
+      });
 
       await Promise.all([...contactPromises, ...companyPromises]);
       await loadData();
@@ -546,7 +548,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       Object.keys(contactData).forEach(key => {
         const value = (contactData as any)[key];
         if (value !== undefined) {
-          updates[key] = value;
+          if (key === 'companyId' && (value === 'none' || value === '')) {
+            updates[key] = '';
+            updates.company = '';
+          } else {
+            updates[key] = value;
+          }
         }
       });
 
